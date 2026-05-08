@@ -39,16 +39,16 @@ body {
   justify-content: flex-end;
   align-items: flex-end;
   padding: 10px 20px;
-  font-size: 3.5rem;
 }
 
 .display {
   height: 10svh;
   width: 95%;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
+  display: block;
   overflow: hidden;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 3.5rem;
 }
 
 .bottom {
@@ -72,7 +72,10 @@ body {
   background-color: #2f2e2e;
   color: #fff;
   transform: scale(1.05);
-  transition: all 0.2s linear;
+  transition:
+    transform 0.2s linear,
+    background-color 0.2s linear,
+    border 0.2s linear;
 }
 
 .elements:hover {
@@ -80,6 +83,12 @@ body {
 }
 
 .elements:active {
+  transform: scale(0.98);
+  border: 1px solid rgb(246, 242, 242);
+  background-color: #454545;
+}
+
+.keyboard-active {
   transform: scale(0.98);
   border: 1px solid rgb(246, 242, 242);
   background-color: #454545;

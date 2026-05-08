@@ -19,9 +19,89 @@ function initCalculator() {
   playClickSound();
 }
 
+function isCalculatorKey(key) {
+  return (
+    isNumberKey(key) ||
+    isOperatorKey(key) ||
+    isEqualKey(key) ||
+    isClearKey(key) ||
+    isToggleKey(key) ||
+    isDecimalKey(key) ||
+    isBackspaceKey(key) ||
+    isPercentageKey(key)
+  );
+}
+
+function getOperatorFromKey(key) {
+  if (key === "*") return "x";
+  return key;
+}
+
+function isNumberKey(key) {
+  return key >= "0" && key <= "9";
+}
+
+function isOperatorKey(key) {
+  return key === "+" || key === "-" || key === "*" || key === "/";
+}
+
+function isEqualKey(key) {
+  return key === "Enter" || key === "=";
+}
+
+function isClearKey(key) {
+  return key === "Escape";
+}
+
+function isToggleKey(key) {
+  return key === "n" || key === "F9";
+}
+
+function isDecimalKey(key) {
+  return key === ".";
+}
+
+function isBackspaceKey(key) {
+  return key === "Backspace";
+}
+
+function isPercentageKey(key) {
+  return key === "%";
+}
+
 // ============================================== //
-// ADDS CLICK SOUND
+// INPUT FEEDBACK HELPERS
 // ============================================== //
+function getButtonLabelFromKey(key) {
+  if (key === "Enter") return "=";
+  if (key === "*") return "x";
+  if (key === "Escape") return "C";
+  if (key === "Backspace") return "<";
+  if (key === "n" || key === "F9") return "+/-";
+
+  return key;
+}
+
+function findButtonByKeyboardKey(key) {
+  const label = getButtonLabelFromKey(key);
+  for (let i = 0; i < elements.buttons.length; i++) {
+    if (elements.buttons[i].textContent === label) {
+      return elements.buttons[i];
+    }
+  }
+}
+
+function showKeyboardPressEffect(key) {
+  const matchingButton = findButtonByKeyboardKey(key);
+
+  if (!matchingButton) return;
+
+  matchingButton.classList.add("keyboard-active");
+
+  setTimeout(function () {
+    matchingButton.classList.remove("keyboard-active");
+  }, 120);
+}
 
 function playClickSound() {
   const clickSound = new Audio("click.mp3");
@@ -36,22 +116,7 @@ function playClickSound() {
 
   document.addEventListener("keydown", function (event) {
     const key = event.key;
-    const isPressed =
-      key === "+" ||
-      key === "-" ||
-      key === "*" ||
-      key === "/" ||
-      key === "Enter" ||
-      key === "=" ||
-      key === "Escape" ||
-      key === "n" ||
-      key === "F9" ||
-      key === "." ||
-      key === "Backspace" ||
-      key === "%" ||
-      (key >= "0" && key <= "9");
-
-    if (isPressed) {
+    if (isCalculatorKey(key)) {
       clickSound.currentTime = 0;
       clickSound.play();
       return;
@@ -80,16 +145,17 @@ function setupNumberListener() {
 function setupKeyboardListener() {
   document.addEventListener("keydown", function (event) {
     const key = event.key;
-    const isOperatorKey =
-      key === "+" || key === "-" || key === "*" || key === "/";
-    const isEqual = key === "Enter" || key === "=";
-    const isClear = key === "Escape";
-    const isToggle = key === "n" || key === "F9";
-    const isDecimal = key === ".";
-    const isBackspace = key === "Backspace";
-    const isPercentage = key === "%";
+    if (key === " ") {
+      event.preventDefault();
+      return;
+    }
+    if (!isCalculatorKey(key)) {
+      return;
+    }
 
-    if (key >= "0" && key <= "9") {
+    showKeyboardPressEffect(key);
+
+    if (isNumberKey(key)) {
       const canInputNumber = actions.handleNumberInput(key);
 
       if (!canInputNumber) {
@@ -99,33 +165,30 @@ function setupKeyboardListener() {
       actions.appendDigit(key);
       actions.displayUI();
       return;
-    } else if (isOperatorKey) {
-      let operator = key;
-      if (operator === "*") {
-        operator = "x";
-      }
+    } else if (isOperatorKey(key)) {
+      const operator = getOperatorFromKey(key);
 
       actions.handleOperatorInput(operator);
       actions.displayUI();
       return;
-    } else if (isEqual) {
+    } else if (isEqualKey(key)) {
       actions.handleEqualsInput();
       return;
-    } else if (isClear) {
+    } else if (isClearKey(key)) {
       actions.resetCalculator();
       return;
-    } else if (isToggle) {
+    } else if (isToggleKey(key)) {
       actions.handleToggleInput();
       return;
-    } else if (isDecimal) {
+    } else if (isDecimalKey(key)) {
       actions.appendDecimal();
       actions.displayUI();
       return;
-    } else if (isBackspace) {
+    } else if (isBackspaceKey(key)) {
       event.preventDefault();
       actions.handleBackspaceInput();
       return;
-    } else if (isPercentage) {
+    } else if (isPercentageKey(key)) {
       actions.handlePercentageInput();
       return;
     }
