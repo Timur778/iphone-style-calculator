@@ -32,14 +32,23 @@ body {
   background-color: black;
 }
 
-.display {
+.top {
   height: 40svh;
   width: 100%;
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
   padding: 10px 20px;
-  font-size: 3rem;
+  font-size: 3.5rem;
+}
+
+.display {
+  height: 10svh;
+  width: 95%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  overflow: hidden;
 }
 
 .bottom {

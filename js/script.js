@@ -10,11 +10,12 @@ function initCalculator() {
   setupNumberListener();
   setupOperatorListener();
   setupEqualsListener();
-  setupClearDisplay();
-  setupDecimalDisplay();
-  setupToggleValue();
-  setupBackspace();
-  setupPercentageCalculate();
+  setupClearListener();
+  setupDecimalListener();
+  setupToggleListener();
+  setupBackspaceListener();
+  setupPercentageListener();
+  setupKeyboardListener();
   playClickSound();
 }
 
@@ -32,27 +33,103 @@ function playClickSound() {
       clickSound.play();
     });
   }
+
+  document.addEventListener("keydown", function (event) {
+    const key = event.key;
+    const isPressed =
+      key === "+" ||
+      key === "-" ||
+      key === "*" ||
+      key === "/" ||
+      key === "Enter" ||
+      key === "=" ||
+      key === "Escape" ||
+      key === "n" ||
+      key === "F9" ||
+      key === "." ||
+      key === "Backspace" ||
+      key === "%" ||
+      (key >= "0" && key <= "9");
+
+    if (isPressed) {
+      clickSound.currentTime = 0;
+      clickSound.play();
+      return;
+    }
+  });
 }
 
 // ============================================== //
 // EVENT LISTENERS
 // ============================================== //
+
 function setupNumberListener() {
   for (let i = 0; i < elements.numberButtons.length; i++) {
     elements.numberButtons[i].addEventListener("click", function () {
       const clickedDigit = elements.numberButtons[i].textContent;
-      const emptyZero = state.currentInput === "" && clickedDigit === "0";
-      const zeroAfterOperator =
-        state.lastInputType === "operator" && clickedDigit === "0";
+      const canInputNumber = actions.handleNumberInput(clickedDigit);
 
-      if (emptyZero && !zeroAfterOperator) {
-        return;
-      }
+      if (!canInputNumber) return;
 
       actions.appendDigit(clickedDigit);
       actions.displayUI();
     });
   }
+}
+
+function setupKeyboardListener() {
+  document.addEventListener("keydown", function (event) {
+    const key = event.key;
+    const isOperatorKey =
+      key === "+" || key === "-" || key === "*" || key === "/";
+    const isEqual = key === "Enter" || key === "=";
+    const isClear = key === "Escape";
+    const isToggle = key === "n" || key === "F9";
+    const isDecimal = key === ".";
+    const isBackspace = key === "Backspace";
+    const isPercentage = key === "%";
+
+    if (key >= "0" && key <= "9") {
+      const canInputNumber = actions.handleNumberInput(key);
+
+      if (!canInputNumber) {
+        return;
+      }
+
+      actions.appendDigit(key);
+      actions.displayUI();
+      return;
+    } else if (isOperatorKey) {
+      let operator = key;
+      if (operator === "*") {
+        operator = "x";
+      }
+
+      actions.handleOperatorInput(operator);
+      actions.displayUI();
+      return;
+    } else if (isEqual) {
+      actions.handleEqualsInput();
+      return;
+    } else if (isClear) {
+      actions.resetCalculator();
+      return;
+    } else if (isToggle) {
+      actions.handleToggleInput();
+      return;
+    } else if (isDecimal) {
+      actions.appendDecimal();
+      actions.displayUI();
+      return;
+    } else if (isBackspace) {
+      event.preventDefault();
+      actions.handleBackspaceInput();
+      return;
+    } else if (isPercentage) {
+      actions.handlePercentageInput();
+      return;
+    }
+  });
 }
 
 function setupOperatorListener() {
@@ -67,104 +144,38 @@ function setupOperatorListener() {
 
 function setupEqualsListener() {
   elements.equals.addEventListener("click", function () {
-    const hasValidCurrentNumber =
-      state.lastInputType === "number" ||
-      (state.lastInputType === "percentage" && state.currentInput !== "-");
-    const isRepeatingEquals = state.lastInputType === "equals";
-    if (hasValidCurrentNumber) {
-      actions.finishCurrentInput();
-      actions.saveRepeatMemory();
-      actions.calculateAndPrepareResult();
-    } else if (isRepeatingEquals) {
-      actions.repeatLastOperation();
-      state.tokens[0] = state.repeatMemory[0];
-      state.finalInput = String(state.repeatMemory[0]);
-      state.lastInputType = "equals";
-    }
-
-    actions.displayUI();
+    actions.handleEqualsInput();
   });
 }
 
-function setupClearDisplay() {
+function setupClearListener() {
   elements.clearbtn.addEventListener("click", function () {
     actions.resetCalculator();
   });
 }
 
-function setupDecimalDisplay() {
+function setupDecimalListener() {
   elements.dotbtn.addEventListener("click", function () {
     actions.appendDecimal();
     actions.displayUI();
   });
 }
 
-function setupToggleValue() {
+function setupToggleListener() {
   elements.togglebtn.addEventListener("click", function () {
-    const isNegative = state.currentInput.startsWith("-");
-
-    if (state.lastInputType === "equals") {
-      actions.toggleResult();
-      actions.displayUI();
-      return;
-    } else if (state.currentInput === "") {
-      return;
-    } else if (!isNegative && state.lastInputType !== "percentage") {
-      actions.togglePositiveCurrentInput();
-    } else if (state.lastInputType === "percentage") {
-      actions.togglePercentage();
-    } else {
-      actions.toggleNegativeCurrentInput();
-    }
-
-    actions.displayUI();
+    actions.handleToggleInput();
   });
 }
 
-function setupBackspace() {
+function setupBackspaceListener() {
   elements.backspacebtn.addEventListener("click", function () {
-    if (state.lastInputType === "equals") {
-      actions.backspaceResult();
-    } else if (state.lastInputType === "number") {
-      const hasParentheses = state.finalInput.endsWith(
-        "(" + state.currentInput + ")",
-      );
-      if (hasParentheses) {
-        actions.backspaceParenthesizedCurrentInput();
-      } else {
-        actions.backspaceNormalCurrentInput();
-      }
-    } else if (state.lastInputType === "percentage") {
-      actions.backspacePercentage();
-    } else if (state.lastInputType === "operator") {
-      actions.backspaceOperator();
-    }
-
-    actions.displayUI();
+    actions.handleBackspaceInput();
   });
 }
 
-function setupPercentageCalculate() {
+function setupPercentageListener() {
   elements.percentbtn.addEventListener("click", function () {
-    const isFirstButton =
-      state.currentInput === "" || state.currentInput === "-";
-    const standAloneNumber =
-      state.lastInputType === "number" &&
-      state.currentInput === state.finalInput;
-    const isExpression =
-      state.currentInput !== state.finalInput &&
-      state.lastInputType === "number";
-
-    if (isFirstButton) return;
-
-    if (standAloneNumber) {
-      actions.calculateStandAlonePercentage();
-    } else if (state.lastInputType === "percentage") {
-      actions.handlePercentageAfterPercentage();
-    } else if (isExpression) {
-      actions.addPercentageToExpression();
-    }
-    actions.displayUI();
+    actions.handlePercentageInput();
   });
 }
 

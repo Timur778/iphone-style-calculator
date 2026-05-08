@@ -12,19 +12,19 @@ export function displayUI() {
   elements.display.textContent = state.finalInput || "0";
 }
 
-export function finishCurrentInput() {
+function finishCurrentInput() {
   state.tokens.push(Number(state.currentInput));
   state.currentInput = "";
   state.lastInputType = "equals";
 }
 
-export function saveRepeatMemory() {
+function saveRepeatMemory() {
   state.repeatMemory = [];
   state.repeatMemory.push(state.tokens.at(-2));
   state.repeatMemory.push(state.tokens.at(-1));
 }
 
-export function calculateAndPrepareResult() {
+function calculateAndPrepareResult() {
   muldiv(state.tokens);
   addsub(state.tokens);
   state.repeatMemory.unshift(state.tokens[0]);
@@ -42,7 +42,7 @@ export function resetCalculator() {
   displayUI();
 }
 
-export function repeatLastOperation() {
+function repeatLastOperation() {
   const left = state.repeatMemory[0];
   const operator = state.repeatMemory[1];
   const right = state.repeatMemory[2];
@@ -51,13 +51,13 @@ export function repeatLastOperation() {
   state.repeatMemory[0] = result;
 }
 
-export function toggleResult() {
+function toggleResult() {
   state.tokens[0] = -state.tokens[0];
   state.repeatMemory[0] = state.tokens[0];
   state.finalInput = String(state.tokens[0]);
 }
 
-export function togglePositiveCurrentInput() {
+function togglePositiveCurrentInput() {
   const oldInput = state.currentInput;
   const prevOperator = state.tokens.at(-1);
   const needsParentheses = prevOperator === "x" || prevOperator === "/";
@@ -81,7 +81,7 @@ export function togglePositiveCurrentInput() {
   }
 }
 
-export function toggleNegativeCurrentInput() {
+function toggleNegativeCurrentInput() {
   const oldInput = state.currentInput;
   const positiveValue = state.currentInput.slice(1);
 
@@ -102,7 +102,7 @@ export function toggleNegativeCurrentInput() {
   state.currentInput = state.currentInput.slice(1);
 }
 
-export function backspaceResult() {
+function backspaceResult() {
   const text = String(state.tokens[0]);
   const resultText = text.slice(0, -1);
 
@@ -118,7 +118,7 @@ export function backspaceResult() {
   state.lastInputType = "number";
 }
 
-export function backspaceNormalCurrentInput() {
+function backspaceNormalCurrentInput() {
   const oldInput = state.currentInput;
   const resultText = state.currentInput.slice(0, -1);
   const valid = resultText !== "" && resultText !== "-";
@@ -173,7 +173,7 @@ function checkVisibleInput() {
   );
 }
 
-export function backspacePercentage() {
+function backspacePercentage() {
   const prevElement = state.finalInput.slice(-2, -1); //find out whether second last element is % or number (e.g. 800 + 50%%%)
   const lastOperator = state.tokens.at(-1);
   const negativeVisibleInput = state.percentageMemory.visibleInput === "(-)";
@@ -221,7 +221,7 @@ export function backspacePercentage() {
   }
 }
 
-export function backspaceParenthesizedCurrentInput() {
+function backspaceParenthesizedCurrentInput() {
   const visibleInput = "(" + state.currentInput + ")";
   const resultText = state.currentInput.slice(0, -1);
 
@@ -236,7 +236,7 @@ export function backspaceParenthesizedCurrentInput() {
   }
 }
 
-export function backspaceOperator() {
+function backspaceOperator() {
   if (state.tokens.length >= 2) {
     state.tokens.pop();
     state.currentInput = String(state.tokens.pop());
@@ -394,7 +394,7 @@ function togglePercentageAfterMulDiv() {
   }
 }
 
-export function togglePercentage() {
+function togglePercentage() {
   const lastOperator = state.tokens.at(-1);
 
   if (lastOperator === "x" || lastOperator === "/") {
@@ -406,7 +406,7 @@ export function togglePercentage() {
   }
 }
 
-export function calculateStandAlonePercentage() {
+function calculateStandAlonePercentage() {
   const result = formatNumber(Number(state.currentInput) / 100);
   state.currentInput = result;
   state.finalInput = result;
@@ -427,7 +427,7 @@ function handleRepeatedPercentage() {
   savePercentageResult();
 }
 
-export function handlePercentageAfterPercentage() {
+function handlePercentageAfterPercentage() {
   const lastOperator = state.tokens.at(-1);
 
   if (isOperator(lastOperator)) {
@@ -440,7 +440,7 @@ export function handlePercentageAfterPercentage() {
   }
 }
 
-export function addPercentageToExpression() {
+function addPercentageToExpression() {
   state.percentageMemory.originalInput = state.currentInput;
   state.percentageMemory.visibleInput = state.currentInput + "%";
   state.finalInput += "%";
@@ -465,4 +465,95 @@ export function addPercentageToExpression() {
   }
 
   state.lastInputType = "percentage";
+}
+
+export function handleNumberInput(clickedDigit) {
+  const emptyZero = state.currentInput === "" && clickedDigit === "0";
+  const zeroAfterOperator =
+    state.lastInputType === "operator" && clickedDigit === "0";
+
+  if (emptyZero && !zeroAfterOperator) {
+    return false;
+  }
+
+  return true;
+}
+
+export function handleEqualsInput() {
+  const hasValidCurrentNumber =
+    state.lastInputType === "number" ||
+    (state.lastInputType === "percentage" && state.currentInput !== "-");
+  const isRepeatingEquals = state.lastInputType === "equals";
+  if (hasValidCurrentNumber) {
+    finishCurrentInput();
+    saveRepeatMemory();
+    calculateAndPrepareResult();
+  } else if (isRepeatingEquals) {
+    repeatLastOperation();
+    state.tokens[0] = state.repeatMemory[0];
+    state.finalInput = String(state.repeatMemory[0]);
+    state.lastInputType = "equals";
+  }
+
+  displayUI();
+}
+
+export function handleToggleInput() {
+  const isNegative = state.currentInput.startsWith("-");
+
+  if (state.lastInputType === "equals") {
+    toggleResult();
+    displayUI();
+    return;
+  } else if (state.currentInput === "") {
+    return;
+  } else if (!isNegative && state.lastInputType !== "percentage") {
+    togglePositiveCurrentInput();
+  } else if (state.lastInputType === "percentage") {
+    togglePercentage();
+  } else {
+    toggleNegativeCurrentInput();
+  }
+
+  displayUI();
+}
+
+export function handlePercentageInput() {
+  const isFirstButton = state.currentInput === "" || state.currentInput === "-";
+  const standAloneNumber =
+    state.lastInputType === "number" && state.currentInput === state.finalInput;
+  const isExpression =
+    state.currentInput !== state.finalInput && state.lastInputType === "number";
+
+  if (isFirstButton) return;
+
+  if (standAloneNumber) {
+    calculateStandAlonePercentage();
+  } else if (state.lastInputType === "percentage") {
+    handlePercentageAfterPercentage();
+  } else if (isExpression) {
+    addPercentageToExpression();
+  }
+  displayUI();
+}
+
+export function handleBackspaceInput() {
+  if (state.lastInputType === "equals") {
+    backspaceResult();
+  } else if (state.lastInputType === "number") {
+    const hasParentheses = state.finalInput.endsWith(
+      "(" + state.currentInput + ")",
+    );
+    if (hasParentheses) {
+      backspaceParenthesizedCurrentInput();
+    } else {
+      backspaceNormalCurrentInput();
+    }
+  } else if (state.lastInputType === "percentage") {
+    backspacePercentage();
+  } else if (state.lastInputType === "operator") {
+    backspaceOperator();
+  }
+
+  displayUI();
 }
